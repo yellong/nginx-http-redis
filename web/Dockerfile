@@ -30,9 +30,38 @@ RUN wget https://github.com/leev/ngx_http_geoip2_module/archive/1.0.tar.gz -O ng
     mkdir /tmp/nginx/http-geoip2 && \
     tar -xzvf ngx-http-geoip2.tar.gz -C /tmp/nginx/http-geoip2 --strip-components=1
 
+# https://hub.docker.com/r/unknownhero/ubuntu-nginx-lua/~/dockerfile/
+RUN wget http://luajit.org/download/LuaJIT-2.0.3.tar.gz -O LuaJIT-2.0.3.tar.gz && \
+    mkdir /tmp/LuaJIT-2.0.3 && \
+    tar -xzvf LuaJIT-2.0.3.tar.gz -C /tmp/LuaJIT-2.0.3 --strip-components=1 && \
+    cd /tmp/LuaJIT-2.0.3 && \
+    make && \
+    make install
+
+RUN wget http://labs.frickle.com/files/ngx_cache_purge-2.3.tar.gz -O ngx_cache_purge-2.3.tar.gz && \
+    mkdir /tmp/nginx/ngx_cache_purge && \
+    tar -xzvf ngx_cache_purge-2.3.tar.gz -C /tmp/nginx/ngx_cache_purge --strip-components=1
+
+RUN wget https://github.com/openresty/lua-nginx-module/archive/v0.9.13.zip -O lua-nginx-module-0.9.13.zip && \
+    unzip lua-nginx-module-0.9.13.zip -d /tmp/nginx && \
+    mv /tmp/nginx/lua-nginx-module-0.9.13 /tmp/nginx/lua-nginx-module
+
+RUN wget https://github.com/simpl/ngx_devel_kit/archive/v0.2.19.zip -O ngx_devel_kit-0.2.19.zip && \
+    unzip ngx_devel_kit-0.2.19.zip -d /tmp/nginx && \
+    mv /tmp/nginx/ngx_devel_kit-0.2.19 /tmp/nginx/ngx_devel_kit
+
+RUN ls -al /tmp/nginx/lua-nginx-module
+
 WORKDIR /tmp/nginx
 
-RUN ./configure --sbin-path=/usr/local/sbin \
+RUN ls /usr/local/lib
+RUN ls /usr/local/include/luajit-2.0
+
+RUN export LUAJIT_LIB=/usr/local/lib && \
+    export LUAJIT_INC=/usr/local/include/luajit-2.0 && \
+    ln -s /usr/local/lib/libluajit-5.1.so.2 /lib64/libluajit-5.1.so.2 && \
+    ./configure --sbin-path=/usr/local/sbin \
+    --with-ld-opt=-Wl,-rpath,/usr/local/lib \
     --prefix=/usr/share/nginx \
     --conf-path=/etc/nginx/nginx.conf \
     --pid-path=/run/nginx.pid \
@@ -56,9 +85,14 @@ RUN ./configure --sbin-path=/usr/local/sbin \
     --with-http_addition_module \
     --with-http_sub_module \
     --add-module=http-redis \
-    --add-module=http-geoip2 && \
-    make && \
+    --add-module=http-geoip2 \
+    --add-module=./lua-nginx-module \
+    --add-module=./ngx_devel_kit \
+    --add-module=./ngx_cache_purge && \
+    make -j2 && \
     make install
+
+RUN ls /usr/local/lib/libluajit-5.1.so.2
 
 COPY nginx.conf /etc/nginx/nginx.conf
 
