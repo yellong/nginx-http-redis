@@ -2,9 +2,7 @@ country_langs = {
   us='',    -- United States, North America
   ca='',    -- Canada, North America
   pr='',    -- puerto rico, North America
-
   co='',   -- Colombia, South America
-
   be='',    -- Belgium, enope
   dk='',    -- Denmark, enope
   fr='fr',    -- France, enope
@@ -59,10 +57,10 @@ if real_locale ~= ngx.var.locale then
     if ngx.var.path_cut == "" then
       ngx.var.rurl = "/"
     else
-      ngx.var.rurl = ngx.var.path_cut
+      ngx.var.rurl = string.gsub(ngx.var.path_cut, "/+$", "")
     end
   else
-    ngx.var.rurl = "/"..real_locale..ngx.var.path_cut
+    ngx.var.rurl = "/"..real_locale..string.gsub(ngx.var.path_cut, "/+$", "")
   end
   return "redirect"
 end
