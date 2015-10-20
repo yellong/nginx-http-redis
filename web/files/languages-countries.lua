@@ -53,14 +53,15 @@ end
 
 real_locale = get_lang(ngx.var.country)
 if real_locale ~= ngx.var.locale then
+  redirect_url = string.gsub(ngx.var.path_cut, "/+$", "")
   if real_locale == "" then
-    if ngx.var.path_cut == "" then
+    if redirect_url == "" then
       ngx.var.rurl = "/"
     else
-      ngx.var.rurl = string.gsub(ngx.var.path_cut, "/+$", "")
+      ngx.var.rurl = redirect_url
     end
   else
-    ngx.var.rurl = "/"..real_locale..string.gsub(ngx.var.path_cut, "/+$", "")
+    ngx.var.rurl = "/"..real_locale..redirect_url
   end
   return "redirect"
 end
