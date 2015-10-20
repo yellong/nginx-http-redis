@@ -8,14 +8,39 @@ web:
     - ./web/ca:/etc/nginx/ca
     - ./web/files:/etc/nginx/files
   links:
+    - redis
+    #- appnode
     - apprails
   ports:
     - "80:80"
     - "8081:8081"
+#appnode:
+#  build: ./app-node
+#  volumes:
+#    - ./app-node:/usr/src/app
+#  links:
+#    - redis
+#  ports:
+#    - "4000:4000"
 apprails:
   build: ./app-rails
   command: rails s
   volumes:
     - ./app-rails/foo:/u/apps/rails
+    - ./app-rails/redis_page:/u/apps/redis_page
+  links:
+    - redis
   ports:
     - "3000:3000"
+sidekiq:  
+  build: ./app-rails
+  command: bundle exec sidekiq
+  volumes:
+    - ./app-rails/foo:/u/apps/rails
+  links:
+    - redis
+redis:
+  build: ./redis
+  ports:
+    - "6379:6379"
+
