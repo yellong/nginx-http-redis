@@ -1,5 +1,4 @@
 #!/bin/sh
-cd ~
 
 # Download Nginx and Nginx modules source
 wget http://nginx.org/download/nginx-1.8.0.tar.gz -O nginx.tar.gz 
