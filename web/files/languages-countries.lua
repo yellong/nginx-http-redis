@@ -47,21 +47,96 @@ country_langs = {
   my=''   -- malaysia, Asia
 }
 
+not_redirect_paths = {
+  ["^/api.*"]=true,
+  ["^/china_city"]=true,
+  ["^/rest.*"]=true,
+  ["^/admin.*"]=true,
+  ["^/cms.*"]=true,
+  ["^/simple_captcha.*"]=true,
+  ["^/gateway.*"]=true,
+  ["^/share.*"]=true,
+  ["^/roles.*"]=true,
+  ["^/user_roles.*"]=true,
+  ["^/events/show$"]=true,
+  ["^/events/show$"]=true,
+  ["^/operate.*"]=true,
+  ["^/account.*"]=true,
+  ["^/log.*"]=true,
+  ["^/excels.*"]=true,
+  ["^/mobile2.*"]=true,
+  ["^/shipping/.*/%d+.*"]=true,
+  ["^/user/login_remote.*"]=true,
+  ["order_sync"]=true,
+  ["^/mobile.*"]=true,
+  ["oauth"]=true,
+  ["auth"]=true,
+  ["callback"]=true,
+  ["wechat"]=true,
+  ["sf_delivery_available"]=true,
+  ["^/robots.txt$"]=true,
+  ["%.json$"]=true,
+  ["%.csv$"]=true,
+  ["%.xml$"]=true
+}
+
 function get_lang(country)
   return country_langs[string.lower(country)]
 end
 
-real_locale = get_lang(ngx.var.country)
-if real_locale ~= ngx.var.locale then
-  redirect_url = string.gsub(ngx.var.path_cut, "/+$", "")
-  if real_locale == "" then
-    if redirect_url == "" then
-      ngx.var.rurl = "/"
-    else
-      ngx.var.rurl = redirect_url
-    end
-  else
-    ngx.var.rurl = "/"..real_locale..redirect_url
+function log(msg)
+  ngx.log(ngx.STDERR, msg)
+end
+
+function should_redirect(uri)
+
+  -- 只跳转GET方法
+  if ngx.var.request_method ~= 'GET' then
+    return false
   end
+
+  -- 不接受ajax请求
+  if ngx.var.http_x_requested_with == "XMLHttpRequest" then
+    return false
+  end
+
+  -- 黑名单判断
+  for path,flag in pairs(not_redirect_paths) do
+    if (flag == true and string.match(ngx.var.uri,path) ~= nil) then
+      return false
+    end
+  end
+
+  -- 当前url中的语言判断
+  return get_lang(ngx.var.country) ~= ngx.var.locale
+end
+
+function build_redirect_url()
+  local redirect_locale = get_lang(ngx.var.country)
+  local redirect_url = ""
+  local replace_string = ""
+
+  -- 特殊处理英文为空的状况
+  if redirect_locale == "" then
+    replace_string = "/"
+  else
+    replace_string = "/"..redirect_locale.."/"
+  end
+
+  -- 替换url中的locale并去掉末尾的"/"
+  redirect_url = ngx.re.gsub(ngx.var.request_uri, "^/"..ngx.var.locale.."/?", replace_string)
+  log("uri::"..ngx.var.request_uri..",redirect_url::"..redirect_url)
+  redirect_url = ngx.re.gsub(redirect_url, "/*$", "")
+  if redirect_url == "" then
+    redirect_url = "/"
+  end
+  -- log("locale::"..ngx.var.locale.." , redirect_locale::"..redirect_locale.." , redirect_url::"..redirect_url)
+  return redirect_url
+end
+
+if should_redirect() then
+  ngx.var.rurl = build_redirect_url()
   return "redirect"
+else
+  return "not_redirect"
 end
