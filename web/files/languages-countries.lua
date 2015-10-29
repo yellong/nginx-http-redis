@@ -75,6 +75,7 @@ not_redirect_paths = {
   ["wechat"]=true,
   ["sf_delivery_available"]=true,
   ["^/robots.txt$"]=true,
+  ["card_pack"]=true,
   ["%.json$"]=true,
   ["%.csv$"]=true,
   ["%.xml$"]=true
