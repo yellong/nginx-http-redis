@@ -69,13 +69,14 @@ not_redirect_paths = {
   ["^/user/login_remote.*"]=true,
   ["order_sync"]=true,
   ["^/mobile.*"]=true,
+  ["mailgun_emails"]=true,
   ["oauth"]=true,
   ["auth"]=true,
   ["callback"]=true,
   ["wechat"]=true,
+  ["card_pack"]=true,
   ["sf_delivery_available"]=true,
   ["^/robots.txt$"]=true,
-  ["card_pack"]=true,
   ["%.json$"]=true,
   ["%.csv$"]=true,
   ["%.xml$"]=true
@@ -86,8 +87,11 @@ function get_lang(country)
 end
 
 function valid_country(country)
+  if country == nil then
+    return false
+  end
   for k,v in pairs(country_langs) do
-    if k == country then
+    if k == string.lower(country) then
       return true
     end
   end
@@ -135,7 +139,6 @@ function build_redirect_url()
 
   -- 替换url中的locale并去掉末尾的"/"
   redirect_url = ngx.re.gsub(ngx.var.request_uri, "^/"..ngx.var.locale.."/?", replace_string)
-  log("uri::"..ngx.var.request_uri..",redirect_url::"..redirect_url)
   redirect_url = ngx.re.gsub(redirect_url, "/*$", "")
   if redirect_url == "" then
     redirect_url = "/"
@@ -145,19 +148,24 @@ function build_redirect_url()
 end
 
 function set_cookies()
-  ngx.header['Set-Cookie'] = 'country='..ngx.var.country..'; path=/'
+  ngx.header['Set-Cookie'] = 'country='..string.upper(ngx.var.country)..'; path=/; domain=dji.com'
+end
+
+-- 如果query中传递了set_country并合法,则使用set_country
+if valid_country(ngx.var.arg_set_country) then
+  ngx.var.country = ngx.var.arg_set_country
 end
 
 -- 如果country不合法,则默认为美国
 if not valid_country(ngx.var.country) then
-  ngx.var.country = 'us'
+  ngx.var.country = "US"
 end
 
 if should_redirect() then
   ngx.var.rurl = build_redirect_url()
-  set_cookies()
+  -- log("redierct:"..ngx.var.request_uri.." re-url"..ngx.var.rurl)
   return "redirect"
 else
-  set_cookies()
+  -- log("not redirect:"..ngx.var.request_uri)
   return "not_redirect"
 end
