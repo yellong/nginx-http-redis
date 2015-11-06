@@ -140,6 +140,12 @@ function build_redirect_url()
   -- 替换url中的locale并去掉末尾的"/"
   redirect_url = ngx.re.gsub(ngx.var.request_uri, "^/"..ngx.var.locale.."/?", replace_string)
   redirect_url = ngx.re.gsub(redirect_url, "/*$", "")
+
+  -- 将类似"/cn/?test"替换成"/cn?test"
+  if redirect_locale ~= "" then
+    redirect_url = ngx.re.gsub(redirect_url, "/\\?", "?")
+  end
+
   if redirect_url == "" then
     redirect_url = "/"
   end
@@ -151,9 +157,12 @@ function set_cookies()
   ngx.header['Set-Cookie'] = 'country='..string.upper(ngx.var.country)..'; path=/; domain=dji.com'
 end
 
--- 如果query中传递了set_country并合法,则使用set_country
+skip_cache = false
+-- 如果query中传递了set_country 并且合法,则使用set_country
+-- set_country 的URL必须经过后端, 不能缓存
 if valid_country(ngx.var.arg_set_country) then
   ngx.var.country = ngx.var.arg_set_country
+  skip_cache = true
 end
 
 -- 如果country不合法,则默认为美国
@@ -167,5 +176,9 @@ if should_redirect() then
   return "redirect"
 else
   -- log("not redirect:"..ngx.var.request_uri)
-  return "not_redirect"
+  if skip_cache then
+    return "skip_cache"
+  else
+    return "not_redirect"
+  end
 end
