@@ -82,7 +82,16 @@ not_redirect_paths = {
 }
 
 function get_lang(country)
-  return country_langs[string.lower(country)]
+  return country_langs[string.lower(country)] or ""
+end
+
+function valid_country(country)
+  for k,v in pairs(country_langs) do
+    if k == country then
+      return true
+    end
+  end
+  return false
 end
 
 function log(msg)
@@ -135,9 +144,20 @@ function build_redirect_url()
   return redirect_url
 end
 
+function set_cookies()
+  ngx.header['Set-Cookie'] = 'country='..ngx.var.country..'; path=/'
+end
+
+-- 如果country不合法,则默认为美国
+if not valid_country(ngx.var.country) then
+  ngx.var.country = 'us'
+end
+
 if should_redirect() then
   ngx.var.rurl = build_redirect_url()
+  set_cookies()
   return "redirect"
 else
+  set_cookies()
   return "not_redirect"
 end
