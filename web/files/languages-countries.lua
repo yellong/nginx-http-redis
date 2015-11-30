@@ -121,6 +121,11 @@ function should_redirect(uri)
     end
   end
 
+  -- 如果是'/cn/'这种语言后面加'/', 则需跳转到'/cn'这种去掉'/'
+  if ngx.re.match(ngx.var.uri, '^/(cn|kr|zh-tw|ja|de|fr)/$') ~= nil then
+    return true
+  end
+
   -- 当前url中的语言判断
   return get_lang(ngx.var.country) ~= ngx.var.locale
 end
