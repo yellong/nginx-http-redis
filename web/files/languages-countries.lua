@@ -32,7 +32,7 @@ country_langs = {
   hk='zh-tw',    -- Hong Kong, Asia
   mo='zh-tw',    -- Macao, Asia
   tw='zh-tw',    -- Taiwan, Republic Of China, Asia
-  jp='ja',    -- Japan, Asia
+  jp={'jp', 'ja'},   -- Japan, Asia
   au='',    -- Australia, Australia
   nz='',    -- New Zealand, Australia
   kr='kr',    -- Korea, Republic of, Asia
@@ -98,6 +98,17 @@ function valid_country(country)
   return false
 end
 
+function is_table(target)
+  return type(target) == 'table'
+end
+
+function in_table( tbl, item )
+  for key, value in pairs(tbl) do
+    if value == item then return true end
+  end
+  return false
+end
+
 function log(msg)
   ngx.log(ngx.STDERR, msg)
 end
@@ -122,16 +133,27 @@ function should_redirect(uri)
   end
 
   -- 如果是'/cn/'这种语言后面加'/', 则需跳转到'/cn'这种去掉'/'
-  if ngx.re.match(ngx.var.uri, '^/(cn|kr|zh-tw|ja|de|fr)/$') ~= nil then
+  if ngx.re.match(ngx.var.uri, '^/(cn|kr|zh-tw|ja|jp|de|fr)/$') ~= nil then
     return true
   end
 
   -- 当前url中的语言判断
-  return get_lang(ngx.var.country) ~= ngx.var.locale
+  lang = get_lang(ngx.var.country)
+  if is_table(lang) then
+    return not in_table(lang, ngx.var.locale)
+  else
+    return lang ~= ngx.var.locale
+  end
 end
 
 function build_redirect_url()
-  local redirect_locale = get_lang(ngx.var.country)
+  local langs = get_lang(ngx.var.country)
+  local redirect_locale = ""
+  if is_table(langs) then
+    redirect_locale = langs[1]
+  else
+    redirect_locale = langs
+  end
   local redirect_url = ""
   local replace_string = ""
 
@@ -177,7 +199,7 @@ end
 
 if should_redirect() then
   ngx.var.rurl = build_redirect_url()
-  -- log("redierct:"..ngx.var.request_uri.." re-url"..ngx.var.rurl)
+  log("redierct:"..ngx.var.request_uri.." re-url"..ngx.var.rurl)
   return "redirect"
 else
   -- log("not redirect:"..ngx.var.request_uri)
